@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理ダッシュボード | Visionworks</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0D1B2E;--navy2:#162540;--navy3:#1E3251;--gold:#C9A84C;--gold2:#E8C96A;--white:#F8F6F0;--muted:#8A9AB5;--border:rgba(201,168,76,0.22);--green:#4CAF82;--red:#E05C5C;--blue:#4A90D9;--orange:#E8924A;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--navy);color:var(--white);font-family:'Noto Sans JP',sans-serif;min-height:100vh;padding-bottom:60px;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 20% 5%,rgba(201,168,76,0.06) 0%,transparent 55%);pointer-events:none;z-index:0;}
+
+/* TOPBAR */
+.topbar{background:var(--navy2);border-bottom:1px solid var(--border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.brand{font-family:'DM Serif Display',serif;font-size:11px;letter-spacing:.2em;color:var(--gold);}
+.admin-badge{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;}
+.refresh-btn{background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
+.refresh-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* TAB NAV */
+.tab-nav{background:var(--navy2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;position:sticky;top:49px;z-index:90;}
+.tab-btn{padding:12px 18px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* MAIN */
+.main{max-width:960px;margin:0 auto;padding:20px 18px;position:relative;z-index:1;}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+
+/* CARDS */
+.card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.card-accent{height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2) 60%,transparent);position:absolute;top:0;left:0;right:0;border-top-left-radius:12px;border-top-right-radius:12px;}
+.slabel{font-size:9px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.slabel::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* FILTERS */
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filter-row select,.filter-row input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:8px 12px;color:var(--white);font-family:'Noto Sans JP',sans-serif;font-size:12px;outline:none;transition:border-color .2s;}
+.filter-row select:focus,.filter-row input:focus{border-color:var(--gold);}
+.filter-row select option{background:var(--navy3);}
+.filter-row label{font-size:11px;color:var(--muted);}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-bottom:16px;}
+.stat-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:11px 13px;}
+.stat-val{font-size:24px;font-weight:900;color:var(--gold);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.data-table td{padding:10px 10px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(255,255,255,0.02);}
+.badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.badge-green{background:rgba(76,175,130,0.2);color:var(--green);}
+.badge-blue{background:rgba(74,144,217,0.2);color:#7ab8f5;}
+.badge-gold{background:rgba(201,168,76,0.2);color:var(--gold2);}
+.badge-red{background:rgba(224,92,92,0.2);color:#f5a0a0;}
+.badge-muted{background:rgba(255,255,255,0.06);color:var(--muted);}
+
+/* MEMBER CARDS */
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.member-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;}
+.mc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.mc-av{width:36px;height:36px;border-radius:8px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mc-name{font-size:14px;font-weight:700;}
+.mc-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.mc-days{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;}
+.mc-day{width:28px;height:28px;border-radius:5px;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;}
+.mc-day.req{background:rgba(74,144,217,0.15);color:#7ab8f5;border:1px solid rgba(74,144,217,0.3);}
+.mc-day.conf{background:rgba(201,168,76,0.18);color:var(--gold2);border:1px solid rgba(201,168,76,0.35);}
+.mc-empty{font-size:11px;color:var(--muted);}
+.confirm-btn{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:5px 12px;color:var(--gold);font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;margin-top:8px;}
+.confirm-btn:hover{background:rgba(201,168,76,0.22);}
+
+/* SHIFT TYPE SELECTOR */
+.type-sel-wrap{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.type-sel{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:7px 10px;color:var(--white);font-family:'Noto Sans JP',sans-serif;font-size:12px;outline:none;transition:border-color .2s;cursor:pointer;}
+.type-sel:focus{border-color:var(--gold);}
+.type-sel option{background:var(--navy3);}
+.type-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;}
+.type-tag-food{background:rgba(76,175,130,0.15);border:1px solid rgba(76,175,130,0.35);color:#4CAF82;}
+.type-tag-comm{background:rgba(74,144,217,0.15);border:1px solid rgba(74,144,217,0.35);color:#7ab8f5;}
+
+/* REPORT ROWS */
+.report-row{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:12px 14px;margin-bottom:8px;}
+.rr-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
+.rr-title{font-size:14px;font-weight:700;}
+.rr-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.rr-total{text-align:right;}
+.rr-total-val{font-size:18px;font-weight:900;color:var(--gold);}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px;}
+.mbox{background:rgba(255,255,255,0.04);border-radius:5px;padding:5px;text-align:center;}
+.mbox .mlbl{font-size:8px;color:var(--muted);}
+.mbox .mval{font-size:14px;font-weight:700;color:var(--gold2);}
+
+/* ATTENDANCE LIVE */
+.live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
+.live-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:12px 14px;}
+.live-card.working{border-color:rgba(76,175,130,0.4);background:rgba(76,175,130,0.06);}
+.live-card.done{border-color:rgba(74,144,217,0.3);background:rgba(74,144,217,0.04);}
+.lc-name{font-size:13px;font-weight:700;margin-bottom:4px;}
+.lc-status{font-size:10px;font-weight:700;margin-bottom:6px;}
+.lc-times{display:flex;gap:8px;font-size:11px;color:var(--muted);}
+.lc-times b{color:var(--white);}
+
+/* MEMBER MANAGEMENT */
+.add-member-form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.add-member-form input{flex:1;min-width:160px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:9px 12px;color:var(--white);font-family:'Noto Sans JP',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.add-member-form input:focus{border-color:var(--gold);}
+.add-member-btn{background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;white-space:nowrap;}
+.add-member-btn:hover{background:var(--gold2);}
+.member-list-item{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 13px;margin-bottom:7px;}
+.mli-info{display:flex;align-items:center;gap:10px;}
+.mli-av{width:32px;height:32px;border-radius:7px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.mli-name{font-size:13px;font-weight:700;}
+.del-btn{background:transparent;border:1px solid rgba(224,92,92,0.3);border-radius:5px;padding:4px 10px;color:var(--red);font-size:10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;opacity:.6;}
+.del-btn:hover{opacity:1;background:rgba(224,92,92,0.1);}
+
+/* LOADING */
+.ldbar{height:3px;background:rgba(201,168,76,0.15);overflow:hidden;display:none;}
+.ldbar.on{display:block;}
+.ldfill{height:100%;background:var(--gold);animation:ld 1.2s ease-in-out infinite;}
+@keyframes ld{0%{width:0;margin-left:0;}50%{width:60%;margin-left:20%;}100%{width:0;margin-left:100%;}}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#fff;padding:11px 22px;border-radius:9px;font-size:13px;font-weight:700;z-index:999;transition:transform .3s;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--red);}
+.empty-msg{text-align:center;color:var(--muted);font-size:12px;padding:24px 0;}
+
+@media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr);}.member-grid{grid-template-columns:1fr;}.metrics-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* PASSWORD SCREEN */
+#pw-screen{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;align-items:center;justify-content:center;}
+#pw-screen::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 30%,rgba(201,168,76,0.08) 0%,transparent 60%);pointer-events:none;}
+.pw-box{background:var(--navy2);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:100%;max-width:340px;text-align:center;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.5);}
+.pw-accent{height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2) 60%,transparent);position:absolute;top:0;left:0;right:0;border-top-left-radius:16px;border-top-right-radius:16px;}
+.pw-brand{font-family:'DM Serif Display',serif;font-size:11px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+.pw-title{font-size:22px;font-weight:900;margin-bottom:6px;}
+.pw-title span{color:var(--gold);}
+.pw-sub{font-size:11px;color:var(--muted);margin-bottom:24px;}
+.pw-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:13px 16px;color:var(--white);font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;text-align:center;letter-spacing:.2em;outline:none;transition:border-color .2s;margin-bottom:12px;}
+.pw-input:focus{border-color:var(--gold);}
+.pw-btn{width:100%;background:var(--gold);color:var(--navy);border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:900;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .2s;letter-spacing:.04em;}
+.pw-btn:hover{background:var(--gold2);}
+.pw-err{font-size:11px;color:var(--red);margin-top:10px;height:16px;transition:opacity .2s;}
+.pw-shake{animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+</style>
+</head>
+<body>
+
+<!-- ─── PASSWORD SCREEN ─── -->
+<div id="pw-screen">
+  <div class="pw-box">
+    <div class="pw-accent"></div>
+    <div class="pw-brand">VISIONWORKS</div>
+    <div class="pw-title">管理者<span>ログイン</span></div>
+    <div class="pw-sub">パスワードを入力してください</div>
+    <input class="pw-input" id="pw-input" type="password" maxlength="10" placeholder="●●●●"
+      onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">🔓 ログイン</button>
+    <div class="pw-err" id="pw-err"></div>
+  </div>
+</div>
+
+<!-- ─── MAIN (hidden until auth) ─── -->
+<div id="main-content" style="display:none;">
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="brand">VISIONWORKS</div>
+    <div class="admin-badge">管理者</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="last-updated" style="font-size:10px;color:var(--muted);"></div>
+    <button class="refresh-btn" onclick="refreshAll()">↻ 更新</button>
+  </div>
+</div>
+
+<div class="ldbar" id="ldbar"><div class="ldfill"></div></div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('kintai',this)">🕐 勤怠管理</button>
+  <button class="tab-btn" onclick="switchTab('shifts',this)">📅 シフト管理</button>
+  <button class="tab-btn" onclick="switchTab('reports',this)">📊 日報一覧</button>
+  <button class="tab-btn" onclick="switchTab('members',this)">👥 メンバー</button>
+</div>
+
+<div class="main">
+
+  <!-- ── 勤怠管理 ── -->
+  <div id="tab-kintai" class="tab-panel active">
+    <div class="card">
+      <div class="card-accent"></div>
+      <div class="slabel">本日のリアルタイム状況</div>
+      <div class="live-grid" id="live-grid"><div class="empty-msg">読み込み中…</div></div>
+
+      <div class="slabel">打刻フィルター</div>
+      <div class="filter-row">
+        <label>日付</label>
+        <input type="date" id="att-date-filter" onchange="loadAttendance()">
+        <select id="att-member-filter" onchange="loadAttendance()"><option value="">全メンバー</option></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="att-stats" class="stats-row"></div>
+      <div id="att-table-wrap"></div>
+    </div>
+  </div>
+
+  <!-- ── シフト管理 ── -->
+  <div id="tab-shifts" class="tab-panel">
+    <div class="card">
+      <div class="card-accent"></div>
+      <div class="slabel">シフト希望フィルター</div>
+      <div class="filter-row">
+        <label>月</label>
+        <input type="month" id="shift-month-filter" onchange="loadShifts()">
+        <select id="shift-member-filter" onchange="loadShifts()"><option value="">全メンバー</option></select>
+      </div>
+    </div>
+    <div id="shift-grid-wrap"></div>
+  </div>
+
+  <!-- ── 日報一覧 ── -->
+  <div id="tab-reports" class="tab-panel">
+    <div class="card">
+      <div class="card-accent"></div>
+      <div class="slabel">日報フィルター</div>
+      <div class="filter-row">
+        <label>月</label>
+        <input type="month" id="report-month-filter" onchange="loadReports()">
+        <select id="report-member-filter" onchange="loadReports()"><option value="">全メンバー</option></select>
+      </div>
+    </div>
+    <div class="card">
+      <div id="report-stats" class="stats-row"></div>
+    </div>
+    <div id="reports-wrap"></div>
+  </div>
+
+  <!-- ── メンバー管理 ── -->
+  <div id="tab-members" class="tab-panel">
+    <div class="card">
+      <div class="card-accent"></div>
+      <div class="slabel">メンバー追加</div>
+      <div class="add-member-form">
+        <input type="text" id="new-member-name" placeholder="氏名を入力（例：田中 太郎）" maxlength="20">
+        <button class="add-member-btn" onclick="addMember()">＋ 追加</button>
+      </div>
+      <div class="slabel">メンバー一覧</div>
+      <div id="member-list"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+<div class="toast" id="toast"></div>
+</div><!-- /main-content -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONFIG ── GAS Web App URL を設定してください（営業ツールと同じURLを使用）
+//  例: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'
+// ═══════════════════════════════════════════════════════════
+const SCRIPT_URL = '';
+const ADMIN_PW = '3023';
+
+// ── PASSWORD ──
+function checkPw(){
+  const val=document.getElementById('pw-input').value;
+  if(val===ADMIN_PW){
+    document.getElementById('pw-screen').style.display='none';
+    document.getElementById('main-content').style.display='block';
+    init();
+  } else {
+    const box=document.querySelector('.pw-box');
+    const err=document.getElementById('pw-err');
+    err.textContent='パスワードが違います';
+    box.classList.remove('pw-shake');
+    void box.offsetWidth; // reflow
+    box.classList.add('pw-shake');
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').focus();
+    setTimeout(()=>err.textContent='',2000);
+  }
+}
+
+// Auto-focus password input on load
+document.addEventListener('DOMContentLoaded',()=>document.getElementById('pw-input').focus());
+
+const DOWS=['日','月','火','水','木','金','土'];
+const COLORS=['#4CAF82','#4A90D9','#E8924A','#C9A84C','#E05C5C','#9C88D9','#4ABFD9'];
+const pad=n=>String(n).padStart(2,'0');
+const today=()=>new Date().toISOString().slice(0,10);
+const mcolor=n=>{let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))%COLORS.length;return COLORS[h];};
+const uid=()=>Date.now()+Math.random().toString(36).slice(2,6);
+function fmtDate(s){if(!s)return'─';const m=s.match(/(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;return`${+m[2]}月${+m[3]}日（${DOWS[new Date(+m[1],+m[2]-1,+m[3]).getDay()]}）`;}
+function calcDur(s,e){if(!s||!e)return null;const[sh,sm]=s.split(':').map(Number);const[eh,em]=e.split(':').map(Number);const mins=(eh*60+em)-(sh*60+sm);if(mins<0)return null;return`${Math.floor(mins/60)}h${String(mins%60).padStart(2,'0')}m`;}
+
+// ── LS ──
+const ls={get:k=>{try{return JSON.parse(localStorage.getItem('vw_'+k)??'null');}catch{return null;}},set:(k,v)=>{try{localStorage.setItem('vw_'+k,JSON.stringify(v));}catch{}}};
+
+// ── API ──
+async function api(method,payload){
+  if(!SCRIPT_URL)return demoGet(payload);
+  try{
+    if(method==='GET'){const r=await fetch(SCRIPT_URL+'?'+new URLSearchParams(payload));return r.json();}
+    const r=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});return r.json();
+  }catch(e){return{ok:false,error:'通信エラー: '+e.message};}
+}
+
+// ── DEMO ──
+function demoGet(p){
+  switch(p.action){
+    case 'getMembers':return{ok:true,members:ls.get('members')||['松本岳大','金田峻承','水野創太']};
+    case 'getAllAttendance':{const recs=(ls.get('attendance')||[]);const filtered=recs.filter(r=>(!p.date||r.date===p.date)&&(!p.name||r.name===p.name)).sort((a,b)=>b.date.localeCompare(a.date));return{ok:true,records:filtered};}
+    case 'getAllShifts':{const shifts=(ls.get('shifts')||[]);const filtered=shifts.filter(s=>(!p.yearMonth||s.yearMonth===p.yearMonth)&&(!p.name||s.name===p.name));return{ok:true,shifts:filtered};}
+    case 'getAllReports':{const reports=(ls.get('reports')||[]);const filtered=reports.filter(r=>(!p.yearMonth||r.date?.startsWith(p.yearMonth))&&(!p.name||r.name===p.name)).sort((a,b)=>b.date.localeCompare(a.date));return{ok:true,reports:filtered};}
+    case 'addMember':{const members=ls.get('members')||[];if(!members.includes(p.name))members.push(p.name);ls.set('members',members);return{ok:true};}
+    case 'deleteMember':{const members=(ls.get('members')||[]).filter(m=>m!==p.name);ls.set('members',members);return{ok:true};}
+    case 'confirmShift':{const shifts=ls.get('shifts')||[];const s=shifts.find(sh=>sh.id===p.id);if(s){s.status='confirmed';s.type=p.type||'';}ls.set('shifts',shifts);return{ok:true};}
+    default:return{ok:false,error:'unknown'};
+  }
+}
+
+function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' err':'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function loading(on){document.getElementById('ldbar').classList.toggle('on',on);}
+function updatedNow(){document.getElementById('last-updated').textContent='最終更新: '+new Date().toLocaleTimeString('ja-JP');}
+
+// ── MEMBER SELECT FILL ──
+function fillMemberSelects(members){
+  ['att-member-filter','shift-member-filter','report-member-filter'].forEach(id=>{
+    const el=document.getElementById(id);
+    const cur=el.value;
+    el.innerHTML='<option value="">全メンバー</option>'+members.map(m=>`<option value="${m}">${m}</option>`).join('');
+    el.value=cur;
+  });
+}
+
+// ──────────────────────────────
+// 勤怠管理
+// ──────────────────────────────
+async function loadAttendance(){
+  const dateF=document.getElementById('att-date-filter').value;
+  const memF=document.getElementById('att-member-filter').value;
+  loading(true);
+  const [attRes,memRes]=await Promise.all([
+    api('GET',{action:'getAllAttendance',date:dateF,name:memF}),
+    api('GET',{action:'getMembers'})
+  ]);
+  loading(false); updatedNow();
+
+  const members=memRes.ok?memRes.members:[];
+  fillMemberSelects(members);
+  loadLiveGrid(members, attRes.ok?attRes.records:[]);
+
+  const recs=attRes.ok?attRes.records:[];
+  // Stats
+  const working=recs.filter(r=>r.start&&!r.end).length;
+  const done=recs.filter(r=>r.start&&r.end).length;
+  const avgDurMins=recs.filter(r=>r.start&&r.end).reduce((s,r)=>{
+    const[sh,sm]=r.start.split(':').map(Number);const[eh,em]=r.end.split(':').map(Number);return s+(eh*60+em)-(sh*60+sm);
+  },0)/(done||1);
+  document.getElementById('att-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val" style="color:var(--green);">${working}</div><div class="stat-lbl">稼働中</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--blue);">${done}</div><div class="stat-lbl">退勤済み</div></div>
+    <div class="stat-card"><div class="stat-val">${recs.length}</div><div class="stat-lbl">打刻件数</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:16px;color:var(--muted);">${done?`${Math.floor(avgDurMins/60)}h${String(Math.round(avgDurMins%60)).padStart(2,'0')}m`:'─'}</div><div class="stat-lbl">平均稼働</div></div>`;
+
+  // Table
+  const wrap=document.getElementById('att-table-wrap');
+  if(!recs.length){wrap.innerHTML='<div class="empty-msg">データがありません</div>';return;}
+  wrap.innerHTML=`<div style="overflow-x:auto;"><table class="data-table">
+    <thead><tr><th>氏名</th><th>日付</th><th>開始</th><th>終了</th><th>稼働時間</th><th>状態</th></tr></thead>
+    <tbody>${recs.map(r=>{
+      const dur=r.start&&r.end?calcDur(r.start,r.end):null;
+      const status=!r.start?'未打刻':!r.end?'稼働中':'退勤済';
+      const badgeCls=!r.start?'badge-muted':!r.end?'badge-green':'badge-blue';
+      return`<tr>
+        <td><span style="display:inline-flex;align-items:center;gap:7px;"><span style="width:26px;height:26px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:${mcolor(r.name)}22;color:${mcolor(r.name)};">${(r.name||'?').charAt(0)}</span>${r.name}</span></td>
+        <td style="font-size:11px;">${fmtDate(r.date)}</td>
+        <td><b style="color:var(--green);font-family:'JetBrains Mono',monospace;">${r.start||'─'}</b></td>
+        <td><b style="color:var(--red);font-family:'JetBrains Mono',monospace;">${r.end||'─'}</b></td>
+        <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;">${dur||'─'}</td>
+        <td><span class="badge ${badgeCls}">${status}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function loadLiveGrid(members, allRecs){
+  const todayRecs=allRecs.filter(r=>r.date===today());
+  const grid=document.getElementById('live-grid');
+  if(!members.length){grid.innerHTML='<div class="empty-msg">メンバーがいません</div>';return;}
+  grid.innerHTML=members.map(name=>{
+    const rec=todayRecs.find(r=>r.name===name);
+    const isWorking=rec?.start&&!rec?.end;
+    const isDone=rec?.start&&rec?.end;
+    const cls='live-card'+(isWorking?' working':isDone?' done':'');
+    const statusTxt=isWorking?'🟢 稼働中':isDone?'🔵 退勤済':'⚪ 未打刻';
+    const statusCol=isWorking?'var(--green)':isDone?'var(--blue)':'var(--muted)';
+    return`<div class="${cls}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:30px;height:30px;border-radius:7px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;background:${mcolor(name)}22;color:${mcolor(name)};">${name.charAt(0)}</div>
+        <div class="lc-name">${name}</div>
+      </div>
+      <div class="lc-status" style="color:${statusCol};">${statusTxt}</div>
+      <div class="lc-times">
+        <span>開始 <b style="color:var(--green);">${rec?.start||'─'}</b></span>
+        <span>終了 <b style="color:var(--red);">${rec?.end||'─'}</b></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────
+// シフト管理
+// ──────────────────────────────
+async function loadShifts(){
+  const ym=document.getElementById('shift-month-filter').value;
+  const memF=document.getElementById('shift-member-filter').value;
+  loading(true);
+  const [shiftRes,memRes]=await Promise.all([
+    api('GET',{action:'getAllShifts',yearMonth:ym,name:memF}),
+    api('GET',{action:'getMembers'})
+  ]);
+  loading(false); updatedNow();
+
+  const members=memRes.ok?memRes.members:[];
+  fillMemberSelects(members);
+  const shifts=shiftRes.ok?shiftRes.shifts:[];
+  const wrap=document.getElementById('shift-grid-wrap');
+
+  if(!shifts.length){wrap.innerHTML='<div class="card"><div class="empty-msg">シフト希望がありません</div></div>';return;}
+
+  // Group by name
+  const byName={};
+  shifts.forEach(s=>{if(!byName[s.name])byName[s.name]=[];byName[s.name].push(s);});
+
+  wrap.innerHTML='<div class="member-grid">'+Object.entries(byName).map(([name,ss])=>{
+    const latest=ss.sort((a,b)=>b.submittedAt?.localeCompare(a.submittedAt))[0];
+    const isConf=latest.status==='confirmed';
+    const days=latest.days||[];
+    const daysHtml=days.length?days.sort((a,b)=>a-b).map(d=>`<div class="mc-day ${isConf?'conf':'req'}">${d}</div>`).join(''):'<div class="mc-empty">日程未選択</div>';
+    const typeCurrent=latest.type||'';
+    const typeDisplay=typeCurrent==='フードデリバリー'
+      ?`<span class="type-tag type-tag-food">🛵 フードデリバリー</span>`
+      :typeCurrent==='通信'
+      ?`<span class="type-tag type-tag-comm">📱 通信</span>`
+      :'';
+    return`<div class="member-card">
+      <div class="mc-head">
+        <div class="mc-av" style="background:${mcolor(name)}22;color:${mcolor(name)};">${name.charAt(0)}</div>
+        <div>
+          <div class="mc-name">${name}</div>
+          <div class="mc-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${latest.yearMonth||'─'} ／ <span class="badge ${isConf?'badge-gold':'badge-blue'}">${isConf?'確定':'申請中'}</span>${typeDisplay}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:5px;">希望日（${days.length}日）</div>
+      <div class="mc-days">${daysHtml}</div>
+      ${latest.note?`<div style="font-size:10px;color:var(--muted);margin-top:7px;background:rgba(255,255,255,0.03);border-radius:5px;padding:5px 7px;">📝 ${latest.note}</div>`:''}
+      <div class="type-sel-wrap">
+        <select class="type-sel" id="type-${latest.id}">
+          <option value="" ${!typeCurrent?'selected':''}>─ 業務を選択 ─</option>
+          <option value="フードデリバリー" ${typeCurrent==='フードデリバリー'?'selected':''}>🛵 フードデリバリー</option>
+          <option value="通信" ${typeCurrent==='通信'?'selected':''}>📱 通信</option>
+        </select>
+        ${!isConf
+          ?`<button class="confirm-btn" onclick="confirmShift('${latest.id}','${name}')">✓ 確定する</button>`
+          :`<button class="confirm-btn" style="opacity:.6;" onclick="confirmShift('${latest.id}','${name}')">↻ 更新</button>`}
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+async function confirmShift(id, name){
+  const typeEl=document.getElementById('type-'+id);
+  const type=typeEl?typeEl.value:'';
+  loading(true);
+  const res=await api('POST',{action:'confirmShift',id,type});
+  loading(false);
+  if(!res.ok){toast(res.error||'エラー',true);return;}
+  toast(`${name}さんのシフトを確定しました ✓`);
+  loadShifts();
+}
+
+// ──────────────────────────────
+// 日報一覧
+// ──────────────────────────────
+async function loadReports(){
+  const ym=document.getElementById('report-month-filter').value;
+  const memF=document.getElementById('report-member-filter').value;
+  loading(true);
+  const [repRes,memRes]=await Promise.all([
+    api('GET',{action:'getAllReports',yearMonth:ym,name:memF}),
+    api('GET',{action:'getMembers'})
+  ]);
+  loading(false); updatedNow();
+
+  const members=memRes.ok?memRes.members:[];
+  fillMemberSelects(members);
+  const reports=repRes.ok?repRes.reports:[];
+
+  // Stats
+  const tUber=reports.reduce((s,r)=>s+(r.uber||0),0);
+  const tRocket=reports.reduce((s,r)=>s+(r.rocket||0),0);
+  const tDemae=reports.reduce((s,r)=>s+(r.demae||0),0);
+  const tMenu=reports.reduce((s,r)=>s+(r.menu||0),0);
+  const tApo=reports.reduce((s,r)=>s+(r.apo||0),0);
+  const tReapo=reports.reduce((s,r)=>s+(r.reapo||0),0);
+  const tTotal=tUber+tRocket+tDemae+tMenu;
+  document.getElementById('report-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val" style="color:var(--gold);">${tTotal}</div><div class="stat-lbl">総制約</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--green);">${tUber}</div><div class="stat-lbl">🛵 Uber</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--blue);">${tRocket}</div><div class="stat-lbl">🚀 Rocket</div></div>
+    <div class="stat-card"><div class="stat-val">${tDemae}</div><div class="stat-lbl">🍜 出前館</div></div>
+    <div class="stat-card"><div class="stat-val">${tMenu}</div><div class="stat-lbl">🍽 menu</div></div>
+    <div class="stat-card"><div class="stat-val">${tApo}</div><div class="stat-lbl">アポ件数</div></div>
+    <div class="stat-card"><div class="stat-val">${tReapo}</div><div class="stat-lbl">再アポ</div></div>
+    <div class="stat-card"><div class="stat-val">${reports.length}</div><div class="stat-lbl">提出件数</div></div>`;
+
+  const wrap=document.getElementById('reports-wrap');
+  if(!reports.length){wrap.innerHTML='<div class="card"><div class="empty-msg">日報がありません</div></div>';return;}
+  wrap.innerHTML=reports.map(r=>{
+    const total=(r.uber||0)+(r.rocket||0)+(r.demae||0)+(r.menu||0);
+    return`<div class="card report-row">
+      <div class="rr-head">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <div style="width:26px;height:26px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:${mcolor(r.name)}22;color:${mcolor(r.name)};">${(r.name||'?').charAt(0)}</div>
+            <b style="font-size:13px;">${r.name}</b>
+          </div>
+          <div class="rr-sub">${fmtDate(r.date)}</div>
+        </div>
+        <div class="rr-total"><div class="rr-total-val">${total}<span style="font-size:11px;color:var(--muted);">件</span></div><div style="font-size:9px;color:var(--muted);">総制約</div></div>
+      </div>
+      <div class="metrics-grid">
+        ${[['🛵','Uber',r.uber],['🚀','Rocket',r.rocket],['🍜','出前館',r.demae],['🍽','menu',r.menu]].map(([ic,lb,v])=>`<div class="mbox"><div class="mlbl">${ic} ${lb}</div><div class="mval">${v||0}</div></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:6px;">
+        <span>アポ：<b style="color:var(--white);">${r.apo||0}件</b></span>
+        <span>再アポ：<b style="color:var(--white);">${r.reapo||0}件</b></span>
+      </div>
+      ${r.good?`<div style="background:rgba(76,175,130,0.07);border:1px solid rgba(76,175,130,0.18);border-radius:5px;padding:7px 9px;font-size:11px;margin-bottom:5px;"><span style="color:var(--green);font-weight:700;">✓ GOOD　</span>${r.good}</div>`:''}
+      ${r.issue?`<div style="background:rgba(224,92,92,0.07);border:1px solid rgba(224,92,92,0.18);border-radius:5px;padding:7px 9px;font-size:11px;"><span style="color:var(--red);font-weight:700;">⚠ ISSUE　</span>${r.issue}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────
+// メンバー管理
+// ──────────────────────────────
+async function loadMembers(){
+  const res=await api('GET',{action:'getMembers'});
+  const members=res.ok?res.members:[];
+  fillMemberSelects(members);
+  const el=document.getElementById('member-list');
+  if(!members.length){el.innerHTML='<div class="empty-msg">メンバーがいません</div>';return;}
+  el.innerHTML=members.map(name=>`
+    <div class="member-list-item">
+      <div class="mli-info">
+        <div class="mli-av" style="background:${mcolor(name)}22;color:${mcolor(name)};">${name.charAt(0)}</div>
+        <div class="mli-name">${name}</div>
+      </div>
+      <button class="del-btn" onclick="deleteMember('${name}')">削除</button>
+    </div>`).join('');
+}
+
+async function addMember(){
+  const name=document.getElementById('new-member-name').value.trim();
+  if(!name){toast('氏名を入力してください',true);return;}
+  loading(true);
+  const res=await api('POST',{action:'addMember',name});
+  loading(false);
+  if(!res.ok){toast(res.error||'エラー',true);return;}
+  toast(`${name}さんを追加しました ✓`);
+  document.getElementById('new-member-name').value='';
+  loadMembers();
+}
+
+async function deleteMember(name){
+  if(!confirm(`「${name}」さんを削除しますか？`))return;
+  loading(true);
+  const res=await api('POST',{action:'deleteMember',name});
+  loading(false);
+  if(!res.ok){toast(res.error||'エラー',true);return;}
+  toast(`${name}さんを削除しました`);
+  loadMembers();
+}
+
+// ──────────────────────────────
+// TAB SWITCH
+// ──────────────────────────────
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='kintai')loadAttendance();
+  if(tab==='shifts')loadShifts();
+  if(tab==='reports')loadReports();
+  if(tab==='members')loadMembers();
+}
+
+function refreshAll(){
+  const active=document.querySelector('.tab-btn.active');
+  active?.click();
+}
+
+// ──────────────────────────────
+// INIT
+// ──────────────────────────────
+function init(){
+  const now=new Date();
+  // Set default date filter to today
+  document.getElementById('att-date-filter').value=today();
+  // Set default month filters
+  const ym=`${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  document.getElementById('shift-month-filter').value=ym;
+  document.getElementById('report-month-filter').value=ym;
+  // Initial load
+  loadAttendance();
+  // Auto-refresh every 30s
+  setInterval(()=>{
+    if(document.querySelector('#tab-kintai.active'))loadAttendance();
+  },30000);
+}
+
+// init() is called by checkPw() after successful authentication
+</script>
+</body>
+</html>

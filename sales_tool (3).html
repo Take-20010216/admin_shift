@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>営業ツール | Visionworks</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0D1B2E;--navy2:#162540;--navy3:#1E3251;--gold:#C9A84C;--gold2:#E8C96A;--white:#F8F6F0;--muted:#8A9AB5;--border:rgba(201,168,76,0.22);--green:#4CAF82;--red:#E05C5C;--blue:#4A90D9;--orange:#E8924A;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--navy);color:var(--white);font-family:'Noto Sans JP',sans-serif;min-height:100vh;padding-bottom:60px;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 80% 5%,rgba(201,168,76,0.06) 0%,transparent 55%);pointer-events:none;z-index:0;}
+
+/* TOP BAR */
+.topbar{background:var(--navy2);border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.brand{font-family:'DM Serif Display',serif;font-size:11px;letter-spacing:.2em;color:var(--gold);}
+.mbadge{display:flex;align-items:center;gap:8px;}
+.mav{width:30px;height:30px;border-radius:7px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.mname{font-size:13px;font-weight:700;}
+.logout-btn{background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* STATUS STRIP */
+.status-strip{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.sinfo{display:flex;align-items:center;gap:10px;}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--muted);}
+.sdot.active{background:var(--green);box-shadow:0 0 7px rgba(76,175,130,0.7);animation:pulse 2s infinite;}
+.sdot.done{background:var(--blue);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.stext{font-size:12px;font-weight:700;}
+.stime{font-size:10px;color:var(--muted);margin-top:1px;}
+.clock-btns{display:flex;gap:8px;}
+.btn-start{background:linear-gradient(135deg,#3caa72,var(--green));border:none;border-radius:8px;padding:9px 22px;color:#fff;font-size:13px;font-weight:900;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;letter-spacing:.04em;}
+.btn-start:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(76,175,130,0.4);}
+.btn-end{background:linear-gradient(135deg,#c94040,var(--red));border:none;border-radius:8px;padding:9px 22px;color:#fff;font-size:13px;font-weight:900;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;letter-spacing:.04em;}
+.btn-end:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(224,92,92,0.4);}
+
+/* TAB NAV */
+.tab-nav{background:var(--navy2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:53px;z-index:90;}
+.tab-btn{padding:11px 16px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* MAIN */
+.main{max-width:700px;margin:0 auto;padding:18px 16px;position:relative;z-index:1;}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+
+/* CARDS */
+.card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.card-accent{height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2) 60%,transparent);position:absolute;top:0;left:0;right:0;border-top-left-radius:12px;border-top-right-radius:12px;}
+.slabel{font-size:9px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.slabel::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* FIELDS */
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:var(--white);font-family:'Noto Sans JP',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);}
+.field select option{background:var(--navy3);}
+.field textarea{resize:vertical;min-height:70px;line-height:1.7;}
+
+/* NUMBER INPUTS */
+.num4{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;}
+.nbox{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 10px 8px;}
+.nbox .nlbl{font-size:10px;color:var(--muted);margin-bottom:5px;}
+.nbox .ni{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:3px 0;color:var(--gold2);font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;text-align:center;outline:none;transition:border-color .2s;}
+.nbox .ni:focus{border-bottom-color:var(--gold);}
+.nbox .nu{font-size:9px;color:var(--muted);text-align:center;margin-top:3px;}
+
+/* SUBMIT BTN */
+.btn-submit{width:100%;background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:900;letter-spacing:.04em;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .2s;margin-top:6px;}
+.btn-submit:hover{background:var(--gold2);transform:translateY(-1px);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cnbtn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 13px;color:var(--muted);cursor:pointer;font-size:13px;transition:all .15s;}
+.cnbtn:hover{border-color:var(--gold);color:var(--gold);}
+.cmlbl{font-size:15px;font-weight:700;color:var(--gold2);font-family:'JetBrains Mono',monospace;}
+.dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+.dow-c{text-align:center;font-size:9px;font-weight:700;padding:3px 0;color:var(--muted);}
+.dow-c.sun{color:#E05C5C;}.dow-c.sat{color:#4A90D9;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.dc{aspect-ratio:1;border-radius:6px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;font-weight:500;transition:all .14s;position:relative;user-select:none;}
+.dc:hover:not(.empty):not(.ro){border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.06);}
+.dc.empty{background:transparent;border-color:transparent;cursor:default;}
+.dc.sel{background:rgba(76,175,130,0.18);border-color:rgba(76,175,130,0.5);color:var(--green);font-weight:700;}
+.dc.confirmed{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.45);color:var(--gold2);font-weight:700;}
+.dc.requested{background:rgba(74,144,217,0.12);border-color:rgba(74,144,217,0.35);color:#7ab8f5;}
+.dc.sun-c{color:#E05C5C;}.dc.sat-c{color:#4A90D9;}
+.dc.today-c::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--gold);}
+.qbtns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.qbtn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:4px 10px;font-size:10px;color:var(--muted);cursor:pointer;transition:all .14s;font-family:'Noto Sans JP',sans-serif;}
+.qbtn:hover{border-color:var(--gold);color:var(--gold);}
+.sel-count{font-size:11px;color:var(--muted);text-align:right;margin-top:7px;}
+.sel-count span{color:var(--green);font-weight:700;font-size:13px;}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+.leg-dot{width:10px;height:10px;border-radius:3px;}
+
+/* ATTENDANCE */
+.att-row{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:10px 13px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.att-date{font-size:13px;font-weight:700;}
+.att-times{display:flex;gap:10px;}
+.attbox{text-align:center;}
+.attbox .albl{font-size:8px;color:var(--muted);}
+.attbox .aval{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.att-dur{font-size:11px;color:var(--green);font-weight:700;}
+
+/* LOGIN */
+#login-screen{max-width:480px;margin:50px auto;padding:0 18px;text-align:center;position:relative;z-index:1;}
+.login-brand{font-family:'DM Serif Display',serif;font-size:12px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:10px;}
+.login-title{font-size:24px;font-weight:900;margin-bottom:6px;}
+.login-title span{color:var(--gold);}
+.login-sub{font-size:12px;color:var(--muted);margin-bottom:22px;}
+.name-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
+.nbtn{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:14px 10px;cursor:pointer;transition:all .15s;font-family:'Noto Sans JP',sans-serif;color:var(--white);}
+.nbtn:hover{border-color:var(--gold);background:rgba(201,168,76,0.08);}
+.nbtn .nav{width:38px;height:38px;border-radius:8px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;}
+.nbtn .nn{font-size:12px;font-weight:700;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#fff;padding:11px 22px;border-radius:9px;font-size:13px;font-weight:700;z-index:999;transition:transform .3s;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--red);}
+
+/* LOADING */
+.ldbar{height:3px;background:rgba(201,168,76,0.15);overflow:hidden;display:none;}
+.ldbar.on{display:block;}
+.ldfill{height:100%;background:var(--gold);animation:ld 1.2s ease-in-out infinite;}
+@keyframes ld{0%{width:0;margin-left:0;}50%{width:60%;margin-left:20%;}100%{width:0;margin-left:100%;}}
+
+.err-msg{background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);border-radius:7px;padding:10px 12px;font-size:12px;color:#f5a0a0;margin-bottom:10px;display:none;}
+.empty-msg{text-align:center;color:var(--muted);font-size:12px;padding:20px 0;}
+
+/* BIG CLOCK BOXES */
+.clock-boxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+.cbox{border-radius:9px;padding:14px;text-align:center;}
+.cbox .clbl{font-size:9px;color:var(--muted);margin-bottom:4px;}
+.cbox .cval{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;}
+
+@media(max-width:400px){.num4{grid-template-columns:1fr 1fr;}.att-times{gap:7px;}.tab-btn{padding:10px 11px;font-size:11px;}}
+
+/* REPORT DAY MARKER */
+.dc.has-report::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--orange);}
+.dc.today-c::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--gold);}
+.dc.has-report.today-c::after{background:var(--orange);}
+.dc.has-report{cursor:pointer!important;}
+.dc.has-report:hover{border-color:rgba(232,146,74,0.5)!important;background:rgba(232,146,74,0.1)!important;}
+
+/* TYPE BADGE */
+.type-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;}
+.type-food{background:rgba(76,175,130,0.15);border:1px solid rgba(76,175,130,0.35);color:var(--green);}
+.type-comm{background:rgba(74,144,217,0.15);border:1px solid rgba(74,144,217,0.35);color:#7ab8f5;}
+.type-none{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);}
+
+/* REPORT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{background:var(--navy2);border:1px solid var(--border);border-top-left-radius:16px;border-top-right-radius:16px;padding:20px 20px 40px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;transform:translateY(40px);transition:transform .25s;}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 16px;}
+.modal-close{float:right;background:rgba(255,255,255,0.07);border:none;border-radius:6px;padding:5px 10px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Noto Sans JP',sans-serif;}
+.modal-close:hover{color:var(--white);}
+.m4grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}
+.m4box{background:rgba(255,255,255,0.04);border-radius:7px;padding:8px;text-align:center;}
+.m4lbl{font-size:8px;color:var(--muted);}
+.m4val{font-size:16px;font-weight:700;color:var(--gold2);}
+</style>
+</head>
+<body>
+
+<!-- ─── LOGIN ─── -->
+<div id="login-screen">
+  <div class="login-brand">VISIONWORKS</div>
+  <div class="login-title">営業<span>ツール</span></div>
+  <div class="login-sub">氏名を選択してください</div>
+  <div class="name-grid" id="name-grid"><div class="empty-msg">読み込み中…</div></div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div id="main-app" style="display:none;">
+
+  <div class="topbar">
+    <div class="brand">VISIONWORKS</div>
+    <div class="mbadge">
+      <div class="mav" id="mav">👤</div>
+      <div class="mname" id="mname">─</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+
+  <div class="ldbar" id="ldbar"><div class="ldfill"></div></div>
+
+  <!-- STATUS STRIP (always visible) -->
+  <div class="status-strip">
+    <div class="sinfo">
+      <div class="sdot" id="sdot"></div>
+      <div>
+        <div class="stext" id="stext">未打刻</div>
+        <div class="stime" id="stimelbl">本日まだ開始していません</div>
+      </div>
+    </div>
+    <div class="clock-btns">
+      <button class="btn-start" id="btn-start" onclick="clockIn()">▶ 開始</button>
+      <button class="btn-end" id="btn-end" onclick="clockOut()" style="display:none;">■ 終了</button>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('kintai',this)">⏱ 打刻</button>
+    <button class="tab-btn" onclick="switchTab('report',this)">📝 日報</button>
+    <button class="tab-btn" onclick="switchTab('shift',this)">📅 シフト提出</button>
+    <button class="tab-btn" onclick="switchTab('myshift',this)">👁 シフト確認</button>
+  </div>
+
+  <div class="main">
+
+    <!-- ── 打刻タブ ── -->
+    <div id="tab-kintai" class="tab-panel active">
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="slabel">本日の打刻</div>
+        <div id="today-lbl" style="font-size:20px;font-weight:900;margin-bottom:4px;"></div>
+        <div class="clock-boxes">
+          <div class="cbox" style="background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.2);">
+            <div class="clbl">▶ 開始時刻</div>
+            <div class="cval" id="cval-start" style="color:var(--green);">──:──</div>
+          </div>
+          <div class="cbox" style="background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);">
+            <div class="clbl">■ 終了時刻</div>
+            <div class="cval" id="cval-end" style="color:var(--red);">──:──</div>
+          </div>
+        </div>
+        <div id="kintai-dur" style="text-align:center;font-size:12px;color:var(--muted);"></div>
+      </div>
+
+      <div class="card">
+        <div class="slabel">過去の打刻履歴</div>
+        <div id="att-history"></div>
+      </div>
+    </div>
+
+    <!-- ── 日報タブ ── -->
+    <div id="tab-report" class="tab-panel">
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="slabel">日報提出</div>
+        <div class="field"><label>稼働日</label><input type="date" id="r-date"></div>
+
+        <div class="slabel" style="margin-top:4px;">サービス別　制約件数</div>
+        <div class="num4">
+          <div class="nbox"><div class="nlbl">🛵 UberEats</div><input class="ni" type="number" id="r-uber" min="0" value="0"><div class="nu">件</div></div>
+          <div class="nbox"><div class="nlbl">🚀 RocketNow</div><input class="ni" type="number" id="r-rocket" min="0" value="0"><div class="nu">件</div></div>
+          <div class="nbox"><div class="nlbl">🍜 出前館</div><input class="ni" type="number" id="r-demae" min="0" value="0"><div class="nu">件</div></div>
+          <div class="nbox"><div class="nlbl">🍽 menu</div><input class="ni" type="number" id="r-menu" min="0" value="0"><div class="nu">件</div></div>
+        </div>
+
+        <div class="slabel" style="margin-top:4px;">アポ実績</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;">
+          <div class="nbox"><div class="nlbl">🚶 アポ回った件数</div><input class="ni" type="number" id="r-apo" min="0" value="0"><div class="nu">件</div></div>
+          <div class="nbox"><div class="nlbl">🔄 再アポ件数</div><input class="ni" type="number" id="r-reapo" min="0" value="0"><div class="nu">件</div></div>
+        </div>
+
+        <div class="field"><label>✅ GOOD（よかったこと）</label><textarea id="r-good" placeholder="例：提案の流れがスムーズだった、成約率が高かった…"></textarea></div>
+        <div class="field"><label>⚠ ISSUE（課題・改善点）</label><textarea id="r-issue" placeholder="例：断られるパターンが多かった、時間管理が難しい…"></textarea></div>
+
+        <div class="err-msg" id="rerr"></div>
+        <button class="btn-submit" id="btn-r-submit" onclick="submitReport()">📤 日報を提出する</button>
+      </div>
+
+      <div class="card">
+        <div class="slabel">提出済み日報</div>
+        <div id="my-reports"></div>
+      </div>
+    </div>
+
+    <!-- ── シフト提出タブ ── -->
+    <div id="tab-shift" class="tab-panel">
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="slabel">シフト希望提出</div>
+        <div class="cal-nav">
+          <button class="cnbtn" onclick="shiftMonthChange(-1)">◀</button>
+          <div class="cmlbl" id="shift-mlbl"></div>
+          <button class="cnbtn" onclick="shiftMonthChange(1)">▶</button>
+        </div>
+        <div class="qbtns">
+          <button class="qbtn" onclick="shiftSelAll()">全選択</button>
+          <button class="qbtn" onclick="shiftSelWeekday()">平日のみ</button>
+          <button class="qbtn" onclick="shiftSelWeekend()">土日のみ</button>
+          <button class="qbtn" onclick="shiftClear()">クリア</button>
+        </div>
+        <div class="dow-row">
+          <div class="dow-c sun">日</div><div class="dow-c">月</div><div class="dow-c">火</div>
+          <div class="dow-c">水</div><div class="dow-c">木</div><div class="dow-c">金</div>
+          <div class="dow-c sat">土</div>
+        </div>
+        <div class="cal-grid" id="shift-grid"></div>
+        <div class="sel-count">選択日数：<span id="shift-cnt">0</span> 日</div>
+
+        <div class="field" style="margin-top:13px;"><label>備考・連絡事項</label><textarea id="shift-note" placeholder="例：第3週は午後から参加可…" style="min-height:60px;"></textarea></div>
+        <div class="err-msg" id="serr"></div>
+        <button class="btn-submit" id="btn-s-submit" onclick="submitShift()">📤 シフト希望を提出する</button>
+      </div>
+    </div>
+
+    <!-- ── シフト確認タブ ── -->
+    <div id="tab-myshift" class="tab-panel">
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="slabel">確定シフト確認</div>
+        <div class="cal-nav">
+          <button class="cnbtn" onclick="viewMonthChange(-1)">◀</button>
+          <div class="cmlbl" id="view-mlbl"></div>
+          <button class="cnbtn" onclick="viewMonthChange(1)">▶</button>
+        </div>
+        <div id="shift-type-badge"></div>
+        <div class="legend">
+          <div class="leg"><div class="leg-dot" style="background:rgba(201,168,76,0.5);"></div>確定</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.4);"></div>申請中</div>
+          <div class="leg"><div style="width:7px;height:7px;border-radius:50%;background:var(--orange);"></div>日報あり（タップ）</div>
+        </div>
+        <div class="dow-row">
+          <div class="dow-c sun">日</div><div class="dow-c">月</div><div class="dow-c">火</div>
+          <div class="dow-c">水</div><div class="dow-c">木</div><div class="dow-c">金</div>
+          <div class="dow-c sat">土</div>
+        </div>
+        <div class="cal-grid" id="view-grid"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /main-app -->
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal()">✕ 閉じる</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONFIG ── GAS Web App URL を設定してください
+//  例: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'
+//  空欄の場合はデモモード（localStorage使用）で動作します
+// ═══════════════════════════════════════════════════════════
+const SCRIPT_URL = '';
+
+// ── STATE ──
+let me = null;
+const shiftSel = new Set();
+let sY = new Date().getFullYear(), sM = new Date().getMonth();
+let vY = new Date().getFullYear(), vM = new Date().getMonth();
+const DOWS = ['日','月','火','水','木','金','土'];
+const COLORS = ['#4CAF82','#4A90D9','#E8924A','#C9A84C','#E05C5C','#9C88D9','#4ABFD9'];
+
+// ── UTILS ──
+const today = () => new Date().toISOString().slice(0,10);
+const nowT = () => { const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const pad = n => String(n).padStart(2,'0');
+const uid = () => Date.now()+Math.random().toString(36).slice(2,6);
+const mcolor = n => { let h=0; for(const c of (n||'')) h=(h*31+c.charCodeAt(0))%COLORS.length; return COLORS[h]; };
+function fmtDate(s){if(!s)return'─';const m=s.match(/(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;return`${+m[2]}月${+m[3]}日（${DOWS[new Date(+m[1],+m[2]-1,+m[3]).getDay()]}）`;}
+function calcDur(s,e){const[sh,sm]=s.split(':').map(Number);const[eh,em]=e.split(':').map(Number);const m=(eh*60+em)-(sh*60+sm);if(m<0)return null;return`${Math.floor(m/60)}時間${m%60}分`;}
+
+// ── LOCAL STORAGE ──
+const ls = {
+  get: k => { try{return JSON.parse(localStorage.getItem('vw_'+k)??'null');}catch{return null;} },
+  set: (k,v) => { try{localStorage.setItem('vw_'+k,JSON.stringify(v));}catch{} }
+};
+
+// ── API ──
+async function api(method, payload) {
+  if (!SCRIPT_URL) return demo(payload);
+  try {
+    if (method==='GET') {
+      const r = await fetch(SCRIPT_URL+'?'+new URLSearchParams(payload));
+      return r.json();
+    }
+    const r = await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+    return r.json();
+  } catch(e) { return {ok:false, error:'通信エラー: '+e.message}; }
+}
+
+// ── DEMO MODE (localStorage) ──
+function demo(p) {
+  const now = new Date().toISOString();
+  switch(p.action) {
+    case 'getMembers': {
+      const members = ls.get('members') || ['松本岳大','金田峻承','水野創太'];
+      return {ok:true, members};
+    }
+    case 'clockIn': {
+      const recs = ls.get('attendance') || [];
+      const t = today();
+      const ex = recs.find(r=>r.name===p.name&&r.date===t);
+      if(ex?.start) return {ok:false,error:'すでに開始済みです'};
+      if(ex){ex.start=p.time;ex.startAt=now;}
+      else recs.push({id:uid(),name:p.name,date:t,start:p.time,startAt:now,end:null,endAt:null});
+      ls.set('attendance',recs); return {ok:true};
+    }
+    case 'clockOut': {
+      const recs = ls.get('attendance') || [];
+      const t = today();
+      const rec = recs.find(r=>r.name===p.name&&r.date===t);
+      if(!rec?.start) return {ok:false,error:'開始打刻がありません'};
+      if(rec.end) return {ok:false,error:'すでに終了済みです'};
+      rec.end=p.time; rec.endAt=now;
+      ls.set('attendance',recs); return {ok:true};
+    }
+    case 'submitShift': {
+      const shifts = ls.get('shifts') || [];
+      const ym = `${p.year}-${pad(p.month)}`;
+      const i = shifts.findIndex(s=>s.name===p.name&&s.yearMonth===ym);
+      const entry = {id:uid(),name:p.name,yearMonth:ym,days:p.days,note:p.note,status:'pending',submittedAt:now};
+      if(i>=0)shifts[i]=entry; else shifts.push(entry);
+      ls.set('shifts',shifts); return {ok:true};
+    }
+    case 'submitReport': {
+      const reports = ls.get('reports') || [];
+      const i = reports.findIndex(r=>r.name===p.name&&r.date===p.date);
+      const entry = {id:uid(),...p,submittedAt:now};
+      if(i>=0)reports[i]=entry; else reports.push(entry);
+      ls.set('reports',reports); return {ok:true};
+    }
+    case 'getMyAttendance': {
+      const recs = (ls.get('attendance')||[]).filter(r=>r.name===p.name).sort((a,b)=>b.date.localeCompare(a.date));
+      return {ok:true,records:recs};
+    }
+    case 'getMyShifts': {
+      const shifts = (ls.get('shifts')||[]).filter(s=>s.name===p.name);
+      return {ok:true,shifts};
+    }
+    case 'getMyReports': {
+      const reports = (ls.get('reports')||[]).filter(r=>r.name===p.name).sort((a,b)=>b.date.localeCompare(a.date));
+      return {ok:true,reports};
+    }
+    case 'getMyReportsForMonth': {
+      const reports = (ls.get('reports')||[]).filter(r=>r.name===p.name&&r.date?.startsWith(p.yearMonth));
+      return {ok:true,reports};
+    }
+    default: return {ok:false,error:'unknown action'};
+  }
+}
+
+// ── TOAST & LOADING ──
+function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' err':'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function loading(on){document.getElementById('ldbar').classList.toggle('on',on);}
+function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';setTimeout(()=>e.style.display='none',5000);}
+
+// ── LOGIN ──
+async function initLogin() {
+  const res = await api('GET',{action:'getMembers'});
+  const members = res.ok ? res.members : ['田中 太郎','鈴木 花子','山田 一郎'];
+  const grid = document.getElementById('name-grid');
+  if(!members.length){grid.innerHTML='<div class="empty-msg">メンバーがいません<br>管理者に連絡してください</div>';return;}
+  grid.innerHTML = members.map((n,i)=>`
+    <div class="nbtn" data-idx="${i}">
+      <div class="nav" style="background:${mcolor(n)}22;color:${mcolor(n)};">${n.charAt(0)}</div>
+      <div class="nn">${n}</div>
+    </div>`).join('');
+  grid.querySelectorAll('.nbtn').forEach((btn,i)=>{
+    btn.addEventListener('click',()=>login(members[i]));
+  });
+}
+
+function login(name) {
+  me = name;
+  const col = mcolor(name);
+  const av = document.getElementById('mav');
+  av.textContent = name.charAt(0); av.style.background=col+'22'; av.style.color=col;
+  document.getElementById('mname').textContent = name;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.getElementById('r-date').value = today();
+  document.getElementById('today-lbl').textContent = fmtDate(today());
+  updateShiftLbl(); updateViewLbl();
+  buildShiftCal(); buildViewCal();
+  loadTodayAtt(); loadAttHist(); loadMyReports();
+}
+
+function logout(){me=null;document.getElementById('login-screen').style.display='block';document.getElementById('main-app').style.display='none';}
+
+// ── CLOCK IN/OUT ──
+async function loadTodayAtt() {
+  const res = await api('GET',{action:'getMyAttendance',name:me});
+  const rec = (res.ok?res.records:[]).find(r=>r.date===today());
+  updateClockUI(rec);
+}
+
+function updateClockUI(rec) {
+  const dot=document.getElementById('sdot'), txt=document.getElementById('stext'), tlbl=document.getElementById('stimelbl');
+  const bS=document.getElementById('btn-start'), bE=document.getElementById('btn-end');
+  const cvS=document.getElementById('cval-start'), cvE=document.getElementById('cval-end'), dur=document.getElementById('kintai-dur');
+  if(!rec?.start){
+    dot.className='sdot'; txt.textContent='未打刻'; tlbl.textContent='本日まだ開始していません';
+    bS.style.display=''; bE.style.display='none';
+    cvS.textContent='──:──'; cvE.textContent='──:──'; dur.textContent='';
+  } else if(!rec.end){
+    dot.className='sdot active'; txt.textContent='稼働中'; tlbl.textContent=`開始：${rec.start}`;
+    bS.style.display='none'; bE.style.display='';
+    cvS.textContent=rec.start; cvE.textContent='稼働中…'; dur.textContent='';
+  } else {
+    dot.className='sdot done'; txt.textContent='退勤済み'; tlbl.textContent=`${rec.start} → ${rec.end}`;
+    bS.style.display='none'; bE.style.display='none';
+    cvS.textContent=rec.start; cvE.textContent=rec.end;
+    const d=calcDur(rec.start,rec.end); dur.textContent=d?`稼働時間：${d}`:'';
+  }
+}
+
+async function clockIn() {
+  loading(true);
+  const res = await api('POST',{action:'clockIn',name:me,time:nowT(),date:today()});
+  loading(false);
+  if(!res.ok){toast(res.error||'エラー',true);return;}
+  toast(`${nowT()} 開始しました ▶`);
+  loadTodayAtt(); loadAttHist();
+}
+async function clockOut() {
+  loading(true);
+  const res = await api('POST',{action:'clockOut',name:me,time:nowT(),date:today()});
+  loading(false);
+  if(!res.ok){toast(res.error||'エラー',true);return;}
+  toast(`${nowT()} 終了しました ■`);
+  loadTodayAtt(); loadAttHist();
+}
+
+async function loadAttHist() {
+  const res = await api('GET',{action:'getMyAttendance',name:me});
+  const recs = (res.ok?res.records:[]).filter(r=>r.date!==today()).slice(0,7);
+  const el=document.getElementById('att-history');
+  if(!recs.length){el.innerHTML='<div class="empty-msg">過去の記録はありません</div>';return;}
+  el.innerHTML = recs.map(r=>{
+    const dur = r.start&&r.end ? calcDur(r.start,r.end) : null;
+    return `<div class="att-row">
+      <div class="att-date">${fmtDate(r.date)}</div>
+      <div class="att-times">
+        <div class="attbox"><div class="albl">開始</div><div class="aval" style="color:var(--green);">${r.start||'─'}</div></div>
+        <div class="attbox"><div class="albl">終了</div><div class="aval" style="color:var(--red);">${r.end||'─'}</div></div>
+      </div>
+      ${dur?`<div class="att-dur">${dur}</div>`:'<div style="font-size:10px;color:var(--muted);">未退勤</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ── DAILY REPORT ──
+async function submitReport() {
+  const date=document.getElementById('r-date').value;
+  if(!date){showErr('rerr','稼働日を選択してください');return;}
+  const payload={action:'submitReport',name:me,date,
+    uber:+document.getElementById('r-uber').value||0,
+    rocket:+document.getElementById('r-rocket').value||0,
+    demae:+document.getElementById('r-demae').value||0,
+    menu:+document.getElementById('r-menu').value||0,
+    apo:+document.getElementById('r-apo').value||0,
+    reapo:+document.getElementById('r-reapo').value||0,
+    good:document.getElementById('r-good').value.trim(),
+    issue:document.getElementById('r-issue').value.trim()};
+  document.getElementById('btn-r-submit').disabled=true;
+  loading(true);
+  const res=await api('POST',payload);
+  loading(false); document.getElementById('btn-r-submit').disabled=false;
+  if(!res.ok){showErr('rerr',res.error||'送信に失敗しました');return;}
+  toast('日報を提出しました ✓');
+  ['r-good','r-issue'].forEach(id=>document.getElementById(id).value='');
+  ['r-uber','r-rocket','r-demae','r-menu','r-apo','r-reapo'].forEach(id=>document.getElementById(id).value=0);
+  loadMyReports();
+}
+
+async function loadMyReports() {
+  const res=await api('GET',{action:'getMyReports',name:me});
+  const reports=(res.ok?res.reports:[]).slice(0,15);
+  const el=document.getElementById('my-reports');
+  if(!reports.length){el.innerHTML='<div class="empty-msg">提出済みの日報はありません</div>';return;}
+  el.innerHTML=reports.map(r=>{
+    const total=(r.uber||0)+(r.rocket||0)+(r.demae||0)+(r.menu||0);
+    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:11px 13px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:700;">${fmtDate(r.date)}</div>
+        <div style="text-align:right;"><span style="font-size:18px;font-weight:900;color:var(--gold);">${total}</span><span style="font-size:10px;color:var(--muted);"> 件（総制約）</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px;">
+        ${[['🛵','Uber',r.uber],['🚀','Rocket',r.rocket],['🍜','出前館',r.demae],['🍽','menu',r.menu]].map(([ic,lb,v])=>`
+          <div style="background:rgba(255,255,255,0.04);border-radius:5px;padding:5px;text-align:center;">
+            <div style="font-size:8px;color:var(--muted);">${ic} ${lb}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--gold2);">${v||0}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);">
+        <span>アポ：<b style="color:var(--white);">${r.apo||0}件</b></span>
+        <span>再アポ：<b style="color:var(--white);">${r.reapo||0}件</b></span>
+      </div>
+      ${r.good?`<div style="margin-top:6px;background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.18);border-radius:5px;padding:6px 8px;font-size:11px;"><span style="color:var(--green);font-weight:700;">✓ GOOD　</span>${r.good}</div>`:''}
+      ${r.issue?`<div style="margin-top:4px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.18);border-radius:5px;padding:6px 8px;font-size:11px;"><span style="color:var(--red);font-weight:700;">⚠ ISSUE　</span>${r.issue}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── SHIFT SUBMISSION ──
+function updateShiftLbl(){document.getElementById('shift-mlbl').textContent=`${sY}年 ${sM+1}月`;}
+function shiftMonthChange(d){sM+=d;if(sM<0){sM=11;sY--;}if(sM>11){sM=0;sY++;}shiftSel.clear();updateShiftLbl();buildShiftCal();}
+function buildShiftCal(){
+  const grid=document.getElementById('shift-grid');
+  const first=new Date(sY,sM,1).getDay(), last=new Date(sY,sM+1,0).getDate();
+  grid.innerHTML='';
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='dc empty';grid.appendChild(e);}
+  for(let d=1;d<=last;d++){
+    const dow=(first+d-1)%7;
+    const cell=document.createElement('div');
+    cell.className='dc'+(dow===0?' sun-c':dow===6?' sat-c':'')+(shiftSel.has(d)?' sel':'');
+    cell.textContent=d; cell.dataset.day=d; cell.dataset.dow=dow;
+    cell.onclick=()=>{shiftSel.has(d)?shiftSel.delete(d):shiftSel.add(d);buildShiftCal();}
+    grid.appendChild(cell);
+  }
+  document.getElementById('shift-cnt').textContent=shiftSel.size;
+}
+function shiftSelAll(){document.querySelectorAll('#shift-grid .dc:not(.empty)').forEach(c=>{shiftSel.add(+c.dataset.day);c.classList.add('sel');});document.getElementById('shift-cnt').textContent=shiftSel.size;}
+function shiftSelWeekday(){document.querySelectorAll('#shift-grid .dc:not(.empty)').forEach(c=>{const d=+c.dataset.dow;if(d>=1&&d<=5){shiftSel.add(+c.dataset.day);c.classList.add('sel');}else{shiftSel.delete(+c.dataset.day);c.classList.remove('sel');}});document.getElementById('shift-cnt').textContent=shiftSel.size;}
+function shiftSelWeekend(){document.querySelectorAll('#shift-grid .dc:not(.empty)').forEach(c=>{const d=+c.dataset.dow;if(d===0||d===6){shiftSel.add(+c.dataset.day);c.classList.add('sel');}else{shiftSel.delete(+c.dataset.day);c.classList.remove('sel');}});document.getElementById('shift-cnt').textContent=shiftSel.size;}
+function shiftClear(){shiftSel.clear();document.querySelectorAll('#shift-grid .dc.sel').forEach(c=>c.classList.remove('sel'));document.getElementById('shift-cnt').textContent=0;}
+
+async function submitShift() {
+  if(!shiftSel.size){showErr('serr','稼働可能日を1日以上選択してください');return;}
+  const days=[...shiftSel].sort((a,b)=>a-b);
+  const note=document.getElementById('shift-note').value.trim();
+  document.getElementById('btn-s-submit').disabled=true; loading(true);
+  const res=await api('POST',{action:'submitShift',name:me,year:sY,month:sM+1,days,note});
+  loading(false); document.getElementById('btn-s-submit').disabled=false;
+  if(!res.ok){showErr('serr',res.error||'送信に失敗しました');return;}
+  toast(`${sY}年${sM+1}月のシフトを提出しました ✓`);
+  document.getElementById('shift-note').value='';
+  buildViewCal();
+}
+
+// ── SHIFT VIEW ──
+function updateViewLbl(){document.getElementById('view-mlbl').textContent=`${vY}年 ${vM+1}月`;}
+function viewMonthChange(d){vM+=d;if(vM<0){vM=11;vY--;}if(vM>11){vM=0;vY++;}updateViewLbl();buildViewCal();}
+async function buildViewCal(){
+  updateViewLbl();
+  const ym=`${vY}-${pad(vM+1)}`;
+  const [shiftRes, repRes] = await Promise.all([
+    api('GET',{action:'getMyShifts',name:me}),
+    api('GET',{action:'getMyReportsForMonth',name:me,yearMonth:ym})
+  ]);
+  const shifts=(shiftRes.ok?shiftRes.shifts:[]).filter(s=>s.yearMonth===ym);
+  const reports=repRes.ok?repRes.reports:[];
+  const reportMap={};
+  reports.forEach(r=>{
+    const d=+r.date.split('-')[2];
+    reportMap[d]=r;
+  });
+
+  const conf=new Set(), req=new Set();
+  let shiftType='';
+  shifts.forEach(s=>{
+    (s.days||[]).forEach(d=>s.status==='confirmed'?conf.add(d):req.add(d));
+    if(s.status==='confirmed'&&s.type)shiftType=s.type;
+  });
+
+  // Type badge
+  const typeBadgeEl=document.getElementById('shift-type-badge');
+  if(shiftType==='フードデリバリー'){
+    typeBadgeEl.innerHTML='<span class="type-badge type-food">🛵 フードデリバリー</span>';
+  } else if(shiftType==='通信'){
+    typeBadgeEl.innerHTML='<span class="type-badge type-comm">📱 通信</span>';
+  } else {
+    typeBadgeEl.innerHTML='';
+  }
+
+  const td=new Date(), tDate=td.getDate(), tM=td.getMonth(), tY=td.getFullYear();
+  const grid=document.getElementById('view-grid');
+  const first=new Date(vY,vM,1).getDay(), last=new Date(vY,vM+1,0).getDate();
+  grid.innerHTML='';
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='dc empty ro';grid.appendChild(e);}
+  for(let d=1;d<=last;d++){
+    const dow=(first+d-1)%7;
+    const cell=document.createElement('div');
+    let cls='dc ro'+(dow===0?' sun-c':dow===6?' sat-c':'');
+    if(conf.has(d))cls+=' confirmed'; else if(req.has(d))cls+=' requested';
+    if(d===tDate&&vM===tM&&vY===tY)cls+=' today-c';
+    if(reportMap[d])cls+=' has-report';
+    cell.className=cls; cell.textContent=d;
+    if(reportMap[d]){
+      const rep=reportMap[d];
+      cell.addEventListener('click',()=>showReportModal(rep));
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// ── REPORT MODAL ──
+function showReportModal(r){
+  const total=(r.uber||0)+(r.rocket||0)+(r.demae||0)+(r.menu||0);
+  document.getElementById('modal-content').innerHTML=`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:18px;font-weight:900;margin-bottom:2px;">${fmtDate(r.date)}</div>
+      <div style="font-size:10px;color:var(--muted);">日報</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:9px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;font-weight:700;margin-bottom:8px;">サービス別　制約件数</div>
+      <div class="m4grid">
+        ${[['🛵','Uber',r.uber],['🚀','Rocket',r.rocket],['🍜','出前館',r.demae],['🍽','menu',r.menu]].map(([ic,lb,v])=>`
+          <div class="m4box"><div class="m4lbl">${ic} ${lb}</div><div class="m4val">${v||0}</div></div>`).join('')}
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--muted);">合計制約：<span style="color:var(--gold);font-size:16px;font-weight:900;">${total}</span> 件</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:14px;">
+      <div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:9px;color:var(--muted);">🚶 アポ件数</div>
+        <div style="font-size:22px;font-weight:900;color:var(--white);">${r.apo||0}</div>
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:9px;color:var(--muted);">🔄 再アポ件数</div>
+        <div style="font-size:22px;font-weight:900;color:var(--white);">${r.reapo||0}</div>
+      </div>
+    </div>
+    ${r.good?`<div style="background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.2);border-radius:8px;padding:10px 12px;margin-bottom:8px;"><div style="font-size:9px;color:var(--green);font-weight:700;margin-bottom:4px;">✓ GOOD</div><div style="font-size:12px;line-height:1.7;">${r.good}</div></div>`:''}
+    ${r.issue?`<div style="background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:8px;padding:10px 12px;"><div style="font-size:9px;color:var(--red);font-weight:700;margin-bottom:4px;">⚠ ISSUE</div><div style="font-size:12px;line-height:1.7;">${r.issue}</div></div>`:''}
+  `;
+  document.getElementById('report-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('report-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+// ── TAB SWITCH ──
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='myshift')buildViewCal();
+  if(tab==='report')loadMyReports();
+  if(tab==='kintai'){loadTodayAtt();loadAttHist();}
+}
+
+// ── INIT ──
+initLogin();
+</script>
+</body>
+</html>

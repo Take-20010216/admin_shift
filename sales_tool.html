@@ -150,6 +150,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .dc.has-report{cursor:pointer!important;}
 .dc.has-report:hover{border-color:rgba(232,146,74,0.5)!important;background:rgba(232,146,74,0.1)!important;}
 
+/* CONFIRMED per-type colors */
+.dc.confirmed-food{background:rgba(76,175,130,0.18);border-color:rgba(76,175,130,0.5);color:var(--green);font-weight:700;}
+.dc.confirmed-comm{background:rgba(74,144,217,0.18);border-color:rgba(74,144,217,0.5);color:#7ab8f5;font-weight:700;}
+.dc.confirmed-off{background:rgba(224,92,92,0.12);border-color:rgba(224,92,92,0.3);color:#f5a0a0;font-weight:700;}
+.dc.confirmed{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.45);color:var(--gold2);font-weight:700;}
+
 /* TYPE BADGE */
 .type-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;}
 .type-food{background:rgba(76,175,130,0.15);border:1px solid rgba(76,175,130,0.35);color:var(--green);}
@@ -157,11 +163,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .type-none{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);}
 
 /* REPORT MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-overlay.open{opacity:1;pointer-events:all;}
-.modal-sheet{background:var(--navy2);border:1px solid var(--border);border-top-left-radius:16px;border-top-right-radius:16px;padding:20px 20px 40px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;transform:translateY(40px);transition:transform .25s;}
-.modal-overlay.open .modal-sheet{transform:translateY(0);}
-.modal-handle{width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 16px;}
+.modal-sheet{background:var(--navy2);border:1px solid var(--border);border-radius:16px;padding:24px 22px 28px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;transform:scale(.94) translateY(10px);transition:transform .25s;}
+.modal-overlay.open .modal-sheet{transform:scale(1) translateY(0);}
+.modal-handle{display:none;}
 .modal-close{float:right;background:rgba(255,255,255,0.07);border:none;border-radius:6px;padding:5px 10px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Noto Sans JP',sans-serif;}
 .modal-close:hover{color:var(--white);}
 .m4grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}
@@ -319,9 +325,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         </div>
         <div id="shift-type-badge"></div>
         <div class="legend">
-          <div class="leg"><div class="leg-dot" style="background:rgba(201,168,76,0.5);"></div>確定</div>
-          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.4);"></div>申請中</div>
-          <div class="leg"><div style="width:7px;height:7px;border-radius:50%;background:var(--orange);"></div>日報あり（タップ）</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(76,175,130,0.5);"></div>🛵 フード</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.5);"></div>📱 通信</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(224,92,92,0.4);"></div>休み</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.25);"></div>申請中</div>
+          <div class="leg"><div style="width:7px;height:7px;border-radius:50%;background:var(--orange);"></div>日報あり</div>
         </div>
         <div class="dow-row">
           <div class="dow-c sun">日</div><div class="dow-c">月</div><div class="dow-c">火</div>
@@ -352,7 +360,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 //  例: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'
 //  空欄の場合はデモモード（localStorage使用）で動作します
 // ═══════════════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOwkpqZldGqKYYlBk1tOhtv41popqqJ-TS3_v9wLsKPQdn4SWSyr6cbXDnbabapZwGGg/exec';
+const SCRIPT_URL = '';
 
 // ── STATE ──
 let me = null;
@@ -653,27 +661,25 @@ async function buildViewCal(){
   const shifts=(shiftRes.ok?shiftRes.shifts:[]).filter(s=>s.yearMonth===ym);
   const reports=repRes.ok?repRes.reports:[];
   const reportMap={};
-  reports.forEach(r=>{
-    const d=+r.date.split('-')[2];
-    reportMap[d]=r;
-  });
+  reports.forEach(r=>{ const d=+r.date.split('-')[2]; reportMap[d]=r; });
 
+  // Build confirmed/requested sets and dayTypes map
   const conf=new Set(), req=new Set();
-  let shiftType='';
+  let dayTypes={};
   shifts.forEach(s=>{
     (s.days||[]).forEach(d=>s.status==='confirmed'?conf.add(d):req.add(d));
-    if(s.status==='confirmed'&&s.type)shiftType=s.type;
+    if(s.status==='confirmed'&&s.dayTypes) dayTypes=Object.assign(dayTypes, s.dayTypes);
   });
 
-  // Type badge
+  // Type badge — show summary of what types exist this month
   const typeBadgeEl=document.getElementById('shift-type-badge');
-  if(shiftType==='フードデリバリー'){
-    typeBadgeEl.innerHTML='<span class="type-badge type-food">🛵 フードデリバリー</span>';
-  } else if(shiftType==='通信'){
-    typeBadgeEl.innerHTML='<span class="type-badge type-comm">📱 通信</span>';
-  } else {
-    typeBadgeEl.innerHTML='';
-  }
+  const typeVals=Object.values(dayTypes);
+  const hasFood=typeVals.includes('フード'), hasComm=typeVals.includes('通信');
+  if(hasFood||hasComm){
+    typeBadgeEl.innerHTML=
+      (hasFood?'<span class="type-badge type-food">🛵 フードデリバリー</span>':'')+
+      (hasComm?'<span class="type-badge type-comm" style="margin-left:6px;">📱 通信</span>':'');
+  } else { typeBadgeEl.innerHTML=''; }
 
   const td=new Date(), tDate=td.getDate(), tM=td.getMonth(), tY=td.getFullYear();
   const grid=document.getElementById('view-grid');
@@ -683,15 +689,22 @@ async function buildViewCal(){
   for(let d=1;d<=last;d++){
     const dow=(first+d-1)%7;
     const cell=document.createElement('div');
+    const dtype=String(dayTypes[d]||dayTypes[String(d)]||'');
     let cls='dc ro'+(dow===0?' sun-c':dow===6?' sat-c':'');
-    if(conf.has(d))cls+=' confirmed'; else if(req.has(d))cls+=' requested';
-    if(d===tDate&&vM===tM&&vY===tY)cls+=' today-c';
-    if(reportMap[d])cls+=' has-report';
-    cell.className=cls; cell.textContent=d;
-    if(reportMap[d]){
-      const rep=reportMap[d];
-      cell.addEventListener('click',()=>showReportModal(rep));
-    }
+    // Color by confirmed day type, fallback to confirmed/requested
+    if(conf.has(d)){
+      if(dtype==='フード') cls+=' confirmed-food';
+      else if(dtype==='通信') cls+=' confirmed-comm';
+      else if(dtype==='休み') cls+=' confirmed-off';
+      else cls+=' confirmed';
+    } else if(req.has(d)) cls+=' requested';
+    if(d===tDate&&vM===tM&&vY===tY) cls+=' today-c';
+    if(reportMap[d]) cls+=' has-report';
+    cell.className=cls;
+    // Show type label inside cell
+    const typeLabel=dtype==='フード'?'🛵':dtype==='通信'?'📱':dtype==='休み'?'休':'';
+    cell.innerHTML=`<span>${d}</span>${typeLabel?`<span style="font-size:7px;display:block;line-height:1;">${typeLabel}</span>`:''}`;
+    if(reportMap[d]){ const rep=reportMap[d]; cell.addEventListener('click',()=>showReportModal(rep)); }
     grid.appendChild(cell);
   }
 }

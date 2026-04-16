@@ -61,7 +61,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .badge-muted{background:rgba(255,255,255,0.06);color:var(--muted);}
 
 /* MEMBER CARDS */
-.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
 .member-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;}
 .mc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .mc-av{width:36px;height:36px;border-radius:8px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -72,8 +72,30 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .mc-day.req{background:rgba(74,144,217,0.15);color:#7ab8f5;border:1px solid rgba(74,144,217,0.3);}
 .mc-day.conf{background:rgba(201,168,76,0.18);color:var(--gold2);border:1px solid rgba(201,168,76,0.35);}
 .mc-empty{font-size:11px;color:var(--muted);}
-.confirm-btn{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:5px 12px;color:var(--gold);font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;margin-top:8px;}
+.confirm-btn{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:6px 16px;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;margin-top:10px;width:100%;}
 .confirm-btn:hover{background:rgba(201,168,76,0.22);}
+
+/* DAY TYPE GRID */
+.day-type-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:10px;}
+.dtcell{border-radius:6px;padding:4px 2px;text-align:center;cursor:default;}
+.dtcell.has-day{cursor:pointer;transition:all .13s;}
+.dtcell .dtnum{font-size:11px;font-weight:700;margin-bottom:2px;}
+.dtcell .dttype{font-size:7px;font-weight:700;line-height:1.2;min-height:10px;}
+.dtcell.t-food{background:rgba(76,175,130,0.18);border:1px solid rgba(76,175,130,0.4);}
+.dtcell.t-food .dtnum{color:var(--green);}
+.dtcell.t-food .dttype{color:var(--green);}
+.dtcell.t-comm{background:rgba(74,144,217,0.18);border:1px solid rgba(74,144,217,0.4);}
+.dtcell.t-comm .dtnum{color:#7ab8f5;}
+.dtcell.t-comm .dttype{color:#7ab8f5;}
+.dtcell.t-off{background:rgba(224,92,92,0.12);border:1px solid rgba(224,92,92,0.3);}
+.dtcell.t-off .dtnum{color:#f5a0a0;}
+.dtcell.t-off .dttype{color:#f5a0a0;}
+.dtcell.t-none{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);}
+.dtcell.t-none .dtnum{color:var(--muted);}
+.dtcell.has-day:hover{filter:brightness(1.3);}
+.day-type-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:9px;}
+.dtleg{display:flex;align-items:center;gap:4px;color:var(--muted);}
+.dtleg-dot{width:8px;height:8px;border-radius:2px;}
 
 /* SHIFT TYPE SELECTOR */
 .type-sel-wrap{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -266,7 +288,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 //  CONFIG ── GAS Web App URL を設定してください（営業ツールと同じURLを使用）
 //  例: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'
 // ═══════════════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOwkpqZldGqKYYlBk1tOhtv41popqqJ-TS3_v9wLsKPQdn4SWSyr6cbXDnbabapZwGGg/exec';
+const SCRIPT_URL = '';
 const ADMIN_PW = '3023';
 
 // ── PASSWORD ──
@@ -322,7 +344,12 @@ function demoGet(p){
     case 'getAllReports':{const reports=(ls.get('reports')||[]);const filtered=reports.filter(r=>(!p.yearMonth||r.date?.startsWith(p.yearMonth))&&(!p.name||r.name===p.name)).sort((a,b)=>b.date.localeCompare(a.date));return{ok:true,reports:filtered};}
     case 'addMember':{const members=ls.get('members')||[];if(!members.includes(p.name))members.push(p.name);ls.set('members',members);return{ok:true};}
     case 'deleteMember':{const members=(ls.get('members')||[]).filter(m=>m!==p.name);ls.set('members',members);return{ok:true};}
-    case 'confirmShift':{const shifts=ls.get('shifts')||[];const s=shifts.find(sh=>sh.id===p.id);if(s){s.status='confirmed';s.type=p.type||'';}ls.set('shifts',shifts);return{ok:true};}
+    case 'confirmShift':{
+      const shifts=ls.get('shifts')||[];
+      const s=shifts.find(sh=>sh.id===p.id);
+      if(s){s.status='confirmed';s.dayTypes=p.dayTypes||{};}
+      ls.set('shifts',shifts);return{ok:true};
+    }
     default:return{ok:false,error:'unknown'};
   }
 }
@@ -441,50 +468,99 @@ async function loadShifts(){
   const byName={};
   shifts.forEach(s=>{if(!byName[s.name])byName[s.name]=[];byName[s.name].push(s);});
 
-  wrap.innerHTML='<div class="member-grid">'+Object.entries(byName).map(([name,ss])=>{
-    const latest=ss.sort((a,b)=>b.submittedAt?.localeCompare(a.submittedAt))[0];
+  // dayTypes state per shift id (in-memory while page is open)
+  wrap._dayTypes = wrap._dayTypes || {};
+
+  const cards = Object.entries(byName).map(([name,ss])=>{
+    const latest=ss.sort((a,b)=>(b.submittedAt||'').localeCompare(a.submittedAt||''))[0];
     const isConf=latest.status==='confirmed';
-    const days=latest.days||[];
-    const daysHtml=days.length?days.sort((a,b)=>a-b).map(d=>`<div class="mc-day ${isConf?'conf':'req'}">${d}</div>`).join(''):'<div class="mc-empty">日程未選択</div>';
-    const typeCurrent=latest.type||'';
-    const typeDisplay=typeCurrent==='フードデリバリー'
-      ?`<span class="type-tag type-tag-food">🛵 フードデリバリー</span>`
-      :typeCurrent==='通信'
-      ?`<span class="type-tag type-tag-comm">📱 通信</span>`
-      :'';
-    return`<div class="member-card">
+    const days=(latest.days||[]).sort((a,b)=>a-b);
+    const sid=latest.id;
+
+    // Init dayTypes from saved data or empty
+    if(!wrap._dayTypes[sid]){
+      wrap._dayTypes[sid] = Object.assign({}, latest.dayTypes||{});
+    }
+
+    return {name, latest, isConf, days, sid};
+  });
+
+  wrap.innerHTML='<div class="member-grid">'+cards.map(({name,latest,isConf,days,sid})=>{
+    const ym=latest.yearMonth||'';
+    const [yr,mo] = ym.split('-').map(Number);
+    const daysSet=new Set(days);
+
+    // Build 7-col calendar for the month
+    const first=new Date(yr,mo-1,1).getDay();
+    const last=new Date(yr,mo,0).getDate();
+    const DOWS_SHORT=['日','月','火','水','木','金','土'];
+
+    const headerCells=DOWS_SHORT.map((d,i)=>`<div style="text-align:center;font-size:8px;font-weight:700;color:${i===0?'#E05C5C':i===6?'#4A90D9':'var(--muted)'};">${d}</div>`).join('');
+    let calCells='';
+    for(let i=0;i<first;i++) calCells+=`<div></div>`;
+    for(let d=1;d<=last;d++){
+      const isDay=daysSet.has(d);
+      if(!isDay){
+        calCells+=`<div class="dtcell" style="background:transparent;border:1px solid transparent;"><div class="dtnum" style="color:rgba(255,255,255,0.1);">${d}</div></div>`;
+      } else {
+        const t=(wrap._dayTypes[sid]||{})[d]||'';
+        const cls=t==='フード'?'t-food':t==='通信'?'t-comm':t==='休み'?'t-off':'t-none';
+        const lbl=t==='フード'?'🛵':t==='通信'?'📱':t==='休み'?'休':'─';
+        calCells+=`<div class="dtcell has-day ${cls}" onclick="cycleType('${sid}',${d},this)" title="${d}日"><div class="dtnum">${d}</div><div class="dttype">${lbl}</div></div>`;
+      }
+    }
+
+    return`<div class="member-card" id="mc-${sid}">
       <div class="mc-head">
         <div class="mc-av" style="background:${mcolor(name)}22;color:${mcolor(name)};">${name.charAt(0)}</div>
-        <div>
+        <div style="flex:1;">
           <div class="mc-name">${name}</div>
-          <div class="mc-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${latest.yearMonth||'─'} ／ <span class="badge ${isConf?'badge-gold':'badge-blue'}">${isConf?'確定':'申請中'}</span>${typeDisplay}</div>
+          <div class="mc-sub">${ym} ／ <span class="badge ${isConf?'badge-gold':'badge-blue'}">${isConf?'確定済み':'申請中'}</span></div>
         </div>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:5px;">希望日（${days.length}日）</div>
-      <div class="mc-days">${daysHtml}</div>
-      ${latest.note?`<div style="font-size:10px;color:var(--muted);margin-top:7px;background:rgba(255,255,255,0.03);border-radius:5px;padding:5px 7px;">📝 ${latest.note}</div>`:''}
-      <div class="type-sel-wrap">
-        <select class="type-sel" id="type-${latest.id}">
-          <option value="" ${!typeCurrent?'selected':''}>─ 業務を選択 ─</option>
-          <option value="フードデリバリー" ${typeCurrent==='フードデリバリー'?'selected':''}>🛵 フードデリバリー</option>
-          <option value="通信" ${typeCurrent==='通信'?'selected':''}>📱 通信</option>
-        </select>
-        ${!isConf
-          ?`<button class="confirm-btn" onclick="confirmShift('${latest.id}','${name}')">✓ 確定する</button>`
-          :`<button class="confirm-btn" style="opacity:.6;" onclick="confirmShift('${latest.id}','${name}')">↻ 更新</button>`}
+      <div style="font-size:9px;color:var(--muted);margin-bottom:4px;">希望日（${days.length}日）　タップで業務切替</div>
+      <div class="day-type-legend">
+        <div class="dtleg"><div class="dtleg-dot" style="background:var(--green);"></div>🛵 フード</div>
+        <div class="dtleg"><div class="dtleg-dot" style="background:#4A90D9;"></div>📱 通信</div>
+        <div class="dtleg"><div class="dtleg-dot" style="background:#E05C5C;"></div>休み</div>
+        <div class="dtleg"><div class="dtleg-dot" style="background:rgba(255,255,255,0.15);"></div>未設定</div>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;margin-top:8px;">${headerCells}</div>
+      <div class="day-type-grid" id="dtg-${sid}">${calCells}</div>
+      ${latest.note?`<div style="font-size:10px;color:var(--muted);margin-top:8px;background:rgba(255,255,255,0.03);border-radius:5px;padding:5px 7px;">📝 ${latest.note}</div>`:''}
+      <button class="confirm-btn" onclick="confirmShift('${sid}','${name}')">
+        ${isConf?'↻ 業務割当を更新する':'✓ シフトを確定する'}
+      </button>
     </div>`;
   }).join('')+'</div>';
 }
 
-async function confirmShift(id, name){
-  const typeEl=document.getElementById('type-'+id);
-  const type=typeEl?typeEl.value:'';
+// タップで フード → 通信 → 休み → 未設定 → フード… と切り替え
+function cycleType(sid, day, cell){
+  const wrap=document.getElementById('shift-grid-wrap');
+  if(!wrap._dayTypes) wrap._dayTypes={};
+  if(!wrap._dayTypes[sid]) wrap._dayTypes[sid]={};
+  const cur=wrap._dayTypes[sid][day]||'';
+  const next=cur===''?'フード':cur==='フード'?'通信':cur==='通信'?'休み':'';
+  if(next==='') delete wrap._dayTypes[sid][day];
+  else wrap._dayTypes[sid][day]=next;
+  // Re-render just this cell
+  const cls=next==='フード'?'t-food':next==='通信'?'t-comm':next==='休み'?'t-off':'t-none';
+  const lbl=next==='フード'?'🛵':next==='通信'?'📱':next==='休み'?'休':'─';
+  cell.className=`dtcell has-day ${cls}`;
+  cell.innerHTML=`<div class="dtnum">${day}</div><div class="dttype">${lbl}</div>`;
+}
+
+async function confirmShift(sid, name){
+  const wrap=document.getElementById('shift-grid-wrap');
+  const dayTypes=(wrap._dayTypes||{})[sid]||{};
   loading(true);
-  const res=await api('POST',{action:'confirmShift',id,type});
+  const res=await api('POST',{action:'confirmShift',id:sid,dayTypes});
   loading(false);
   if(!res.ok){toast(res.error||'エラー',true);return;}
   toast(`${name}さんのシフトを確定しました ✓`);
+  // Clear cached types so fresh load
+  if(wrap._dayTypes) delete wrap._dayTypes[sid];
   loadShifts();
 }
 

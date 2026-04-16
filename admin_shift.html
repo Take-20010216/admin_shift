@@ -281,7 +281,7 @@ function checkPw(){
     const err=document.getElementById('pw-err');
     err.textContent='パスワードが違います';
     box.classList.remove('pw-shake');
-    void box.offsetWidth; // reflow
+    void box.offsetWidth;
     box.classList.add('pw-shake');
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
@@ -289,13 +289,13 @@ function checkPw(){
   }
 }
 
-// Auto-focus password input on load
 document.addEventListener('DOMContentLoaded',()=>document.getElementById('pw-input').focus());
 
 const DOWS=['日','月','火','水','木','金','土'];
 const COLORS=['#4CAF82','#4A90D9','#E8924A','#C9A84C','#E05C5C','#9C88D9','#4ABFD9'];
 const pad=n=>String(n).padStart(2,'0');
-const today=()=>new Date().toISOString().slice(0,10);
+const jstNow=()=>new Date(Date.now()+9*60*60*1000);
+const today=()=>jstNow().toISOString().slice(0,10);
 const mcolor=n=>{let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))%COLORS.length;return COLORS[h];};
 const uid=()=>Date.now()+Math.random().toString(36).slice(2,6);
 function fmtDate(s){if(!s)return'─';const m=s.match(/(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;return`${+m[2]}月${+m[3]}日（${DOWS[new Date(+m[1],+m[2]-1,+m[3]).getDay()]}）`;}
@@ -304,12 +304,24 @@ function calcDur(s,e){if(!s||!e)return null;const[sh,sm]=s.split(':').map(Number
 // ── LS ──
 const ls={get:k=>{try{return JSON.parse(localStorage.getItem('vw_'+k)??'null');}catch{return null;}},set:(k,v)=>{try{localStorage.setItem('vw_'+k,JSON.stringify(v));}catch{}}};
 
-// ── API ──
-async function api(method,payload){
-  if(!SCRIPT_URL)return demoGet(payload);
+// ── API (GETキャッシュ付き) ──
+const _cache = {};
+async function api(method, payload){
+  if(!SCRIPT_URL) return demoGet(payload);
   try{
-    if(method==='GET'){const r=await fetch(SCRIPT_URL+'?'+new URLSearchParams(payload));return r.json();}
-    const r=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});return r.json();
+    if(method==='GET'){
+      const key=JSON.stringify(payload);
+      // キャッシュが20秒以内なら再利用
+      if(_cache[key]&&Date.now()-_cache[key].ts<20000) return _cache[key].data;
+      const r=await fetch(SCRIPT_URL+'?'+new URLSearchParams(payload));
+      const data=await r.json();
+      _cache[key]={data,ts:Date.now()};
+      return data;
+    }
+    // POST はキャッシュクリア
+    Object.keys(_cache).forEach(k=>delete _cache[k]);
+    const r=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+    return r.json();
   }catch(e){return{ok:false,error:'通信エラー: '+e.message};}
 }
 

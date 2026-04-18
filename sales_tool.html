@@ -330,11 +330,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           <div class="cmlbl" id="view-mlbl"></div>
           <button class="cnbtn" onclick="viewMonthChange(1)">▶</button>
         </div>
-        <div id="shift-type-badge"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div id="shift-type-badge"></div>
+          <button onclick="refreshShiftView()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;" onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">↻ 更新</button>
+        </div>
         <div class="legend">
+          <div class="leg"><div class="leg-dot" style="background:rgba(76,175,130,0.6);"></div>🛵 フード</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.6);"></div>📱 通信</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(224,92,92,0.5);"></div>休み</div>
           <div class="leg"><div class="leg-dot" style="background:rgba(201,168,76,0.5);"></div>確定</div>
-          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.4);"></div>申請中</div>
-          <div class="leg"><div style="width:7px;height:7px;border-radius:50%;background:var(--orange);"></div>日報あり（タップ）</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(74,144,217,0.3);"></div>申請中</div>
+          <div class="leg"><div style="width:7px;height:7px;border-radius:50%;background:var(--orange);"></div>日報</div>
         </div>
         <div class="dow-row">
           <div class="dow-c sun">日</div><div class="dow-c">月</div><div class="dow-c">火</div>
@@ -393,18 +399,19 @@ const ls = {
 
 // ── API (GETキャッシュ付き) ──
 const _cache = {};
+function clearCache(){ Object.keys(_cache).forEach(k=>delete _cache[k]); }
 async function api(method, payload) {
   if (!SCRIPT_URL) return demo(payload);
   try {
     if (method==='GET') {
       const key=JSON.stringify(payload);
-      if(_cache[key]&&Date.now()-_cache[key].ts<20000) return _cache[key].data;
+      if(_cache[key]&&Date.now()-_cache[key].ts<5000) return _cache[key].data;
       const r = await fetch(SCRIPT_URL+'?'+new URLSearchParams(payload));
       const data = await r.json();
       _cache[key]={data,ts:Date.now()};
       return data;
     }
-    Object.keys(_cache).forEach(k=>delete _cache[k]);
+    clearCache();
     const r = await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
     return r.json();
   } catch(e) { return {ok:false, error:'通信エラー: '+e.message}; }
@@ -768,6 +775,11 @@ function showReportModal(r){
 function closeModal(){
   document.getElementById('report-modal').classList.remove('open');
   document.body.style.overflow='';
+}
+
+function refreshShiftView(){
+  clearCache();
+  buildViewCal();
 }
 
 // ── TAB SWITCH ──

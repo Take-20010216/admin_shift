@@ -574,14 +574,19 @@ function cycleType(cell){
 async function confirmShift(sid, name){
   const wrap=document.getElementById('shift-grid-wrap');
   const dayTypes=(wrap._dt||{})[sid]||{};
-  loading(true);
+  // ── 先にボタンを「保存中…」に変更（体感速度UP）──
+  const btn=document.querySelector(`#mc-${sid} .confirm-btn`);
+  if(btn){btn.textContent='保存中…';btn.disabled=true;}
   const res=await api('POST',{action:'confirmShift',id:sid,type:'',dayTypes});
-  loading(false);
-  if(!res.ok){toast(res.error||'エラー',true);return;}
+  if(!res.ok){
+    toast(res.error||'エラー',true);
+    if(btn){btn.textContent='↻ 業務割当を更新';btn.disabled=false;}
+    return;
+  }
   toast(`${name}さんのシフトを確定しました ✓`);
-  if(wrap._dt) delete wrap._dt[sid];
+  if(btn){btn.textContent='✓ 保存済み';btn.style.background='rgba(76,175,130,0.15)';btn.style.borderColor='rgba(76,175,130,0.4)';btn.style.color='var(--green)';}
+  // キャッシュクリアのみ（再読み込みしない → 速い）
   clearCache();
-  loadShifts();
 }
 
 // ──────────────────────────────

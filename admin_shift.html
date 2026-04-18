@@ -304,22 +304,23 @@ function calcDur(s,e){if(!s||!e)return null;const[sh,sm]=s.split(':').map(Number
 // ── LS ──
 const ls={get:k=>{try{return JSON.parse(localStorage.getItem('vw_'+k)??'null');}catch{return null;}},set:(k,v)=>{try{localStorage.setItem('vw_'+k,JSON.stringify(v));}catch{}}};
 
-// ── API (GETキャッシュ付き) ──
+// ── API (GETキャッシュ付き・5秒) ──
 const _cache = {};
+function clearCache(){ Object.keys(_cache).forEach(k=>delete _cache[k]); }
 async function api(method, payload){
   if(!SCRIPT_URL) return demoGet(payload);
   try{
     if(method==='GET'){
       const key=JSON.stringify(payload);
-      // キャッシュが20秒以内なら再利用
-      if(_cache[key]&&Date.now()-_cache[key].ts<20000) return _cache[key].data;
+      // キャッシュが5秒以内なら再利用（連打防止）
+      if(_cache[key]&&Date.now()-_cache[key].ts<5000) return _cache[key].data;
       const r=await fetch(SCRIPT_URL+'?'+new URLSearchParams(payload));
       const data=await r.json();
       _cache[key]={data,ts:Date.now()};
       return data;
     }
     // POST はキャッシュクリア
-    Object.keys(_cache).forEach(k=>delete _cache[k]);
+    clearCache();
     const r=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
     return r.json();
   }catch(e){return{ok:false,error:'通信エラー: '+e.message};}
@@ -629,6 +630,7 @@ function switchTab(tab, btn){
 }
 
 function refreshAll(){
+  clearCache();
   const active=document.querySelector('.tab-btn.active');
   active?.click();
 }
